@@ -1,0 +1,12 @@
+{
+    "WONDERSMITH": {
+        "Placeholder": "Spin to generate a random item",
+        "SpinButton": "Weld Wonderous Widgets!",
+        "Rarity": {
+            "0": "Common",
+            "1": "Uncommon",
+            "2": "Rare",
+            "3": "Mythic"
+        }
+    }
+}
