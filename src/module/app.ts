@@ -52,8 +52,8 @@ function getRarityColor(rarity: Rarity): string {
         case Rarity.COMMON: return '#2c2c2c';
         case Rarity.UNCOMMON: return '#ffffff'
         case Rarity.RARE: return '#dbb900';
-        case Rarity.MYTHIC: return '#6800db';
+        case Rarity.VERY_RARE: return '#0e28ed';
+        case Rarity.LEGENDARY: return '#6800db';
     }
-
 }
 

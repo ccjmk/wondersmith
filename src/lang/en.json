@@ -6,7 +6,8 @@
             "0": "Common",
             "1": "Uncommon",
             "2": "Rare",
-            "3": "Mythic"
+            "3": "Very Rare",
+            "4": "Legendary"
         }
     }
 }

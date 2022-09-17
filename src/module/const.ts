@@ -4,7 +4,8 @@ export const enum Rarity {
     COMMON,
     UNCOMMON,
     RARE,
-    MYTHIC,
+    VERY_RARE,
+    LEGENDARY,
 }
 
 export const DND5E_ITEM_TYPES = ['weapon', 'equipment', 'consumable', 'tool', 'loot'];

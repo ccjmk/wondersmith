@@ -1,3 +1,4 @@
+import { _isValidResultRange } from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/data.mjs/tableResultData";
 import { DND5E_ITEM_TYPES, Rarity } from "./const";
 import { Modifier } from "./modifier";
 import { RandomItem } from "./randomItem";
@@ -7,37 +8,51 @@ export interface RandomItemOptions { type?: string };
 
 export default class Randomizer {
     randomItem = async (options?: RandomItemOptions): Promise<RandomItem> => {
+
         let { type } = options ?? { type: undefined };
         if (!type) type = randomizeTypeForSystem();
-        else if(!validType(type)) throw new Error(localize('invalidType'));
+        else if (!validType(type)) throw new Error(localize('invalidType'));
 
         const { prefixes, suffixes } = this.modifiersForType(type);
-        const item = { name: `Placeholder${type.capitalize()}`, type: type };
+        const item = { name: type.capitalize() + "", type: type };
         const baseName = item.name;
         let prefix;
         let suffix;
 
         const itemRoll = Math.random();
         const rarity = rollItemRarity();
-        // (0.4 , 0.6) creates both a prefix and a suffix
-        if (itemRoll < 0.6) {
-            const validPrefixes = prefixes.filter(p => p.rarity <= rarity);
-            prefix = getRandomFromArray(validPrefixes);
+        try {
+            // (0.4 , 0.6) creates both a prefix and a suffix
+            if (itemRoll < 0.6) {
+                const validPrefixes = shuffle(prefixes.filter(p => p.rarity <= rarity)).sort((a, b) => b.rarity - a.rarity);
+                if (validPrefixes.length) {
+                    prefix = getRandomFromArray(validPrefixes);
 
-            // TODO apply prefix
-            console.log(`Prefix effect: ${prefix.effect}`);
-            item.name = `${prefix.label} ${item.name}`;
-        }
-        if (itemRoll > 0.4) {
-            const validSuffixes = suffixes.filter(p => p.rarity <= rarity);
-            suffix = getRandomFromArray(validSuffixes);
+                    // TODO apply prefix
+                    console.log(`Prefix effect: ${prefix.effect}`);
+                    item.name = `${prefix.label} ${item.name}`;
+                }
+            }
+            if (itemRoll > 0.4) {
+                const validSuffixes = shuffle(suffixes.filter(p => p.rarity <= rarity)).sort((a, b) => b.rarity - a.rarity);
+                if (validSuffixes.length) {
+                    suffix = getRandomFromArray(validSuffixes);
 
-            // TODO apply suffix
-            console.log(`Suffix effect: ${suffix.effect}`);
-            item.name = `${item.name} of ${suffix.label}`;
+                    // TODO apply suffix
+                    console.log(`Suffix effect: ${suffix.effect}`);
+                    item.name = `${item.name} of ${suffix.label}`;
+                }
+            }
+        } catch (error) {
+            console.error(error);
+            console.log(`roll: ${itemRoll}`)
+            console.log(`rarity: ${rarity}`);
+            console.log(`prefix: ${prefix}`);
+            console.log(`suffix: ${suffix}`);
         }
 
         return { item, baseName, rarity, prefix, suffix };
+
     }
 
     modifiersForType = (type: string): {
@@ -53,7 +68,8 @@ export default class Randomizer {
                 { label: 'Engraved(U)', effect: "is engraved", rarity: Rarity.UNCOMMON },
                 { label: 'Brutal(U)', effect: "is brutal", rarity: Rarity.UNCOMMON },
                 { label: 'Sacred(R)', effect: "is sacred", rarity: Rarity.RARE },
-                { label: 'Astral(M)', effect: "is astral", rarity: Rarity.MYTHIC },
+                { label: 'Astral(VR)', effect: "is astral", rarity: Rarity.VERY_RARE },
+                { label: 'Godly(L)', effect: "is godly", rarity: Rarity.VERY_RARE },
             ],
             suffixes: [
                 { label: 'Fury(C)', effect: "is furious", rarity: Rarity.COMMON },
@@ -61,7 +77,8 @@ export default class Randomizer {
                 { label: 'the Ancients(U)', effect: "is from the ancients", rarity: Rarity.UNCOMMON },
                 { label: 'Flame and Fire(U)', effect: "is of flame and fire", rarity: Rarity.UNCOMMON },
                 { label: 'the Deadly Hollows(R)', effect: "is from the deadly hollows", rarity: Rarity.RARE },
-                { label: 'Eons(M)', effect: "is old AF", rarity: Rarity.MYTHIC },
+                { label: 'Eons(VR)', effect: "is old AF", rarity: Rarity.VERY_RARE },
+                { label: 'Godslaying(L)', effect: "is for killing gods", rarity: Rarity.LEGENDARY },
             ],
         }
     }
@@ -69,27 +86,31 @@ export default class Randomizer {
 
 const rollItemRarity = () => {
     const roll = new Roll('1d100').evaluate({ async: false })
-    roll.toMessage({ flavor: 'Rarity roll' });
     const result = roll.total;
 
-    const rarity = result <= 50
+    return result < 40
         ? Rarity.COMMON
-        : result <= 85
+        : result < 70
             ? Rarity.UNCOMMON
-            : Rarity.RARE;
-
-    if (rarity == Rarity.RARE) {
-        // roll for mythic
-        const mythicRoll = new Roll('1d8').evaluate({ async: false })
-        mythicRoll.toMessage({ flavor: 'Mythic roll' });
-        if (mythicRoll.total === 8) return Rarity.MYTHIC;
-    }
-    return rarity;
+            : result < 85
+                ? Rarity.RARE
+                : result < 95
+                    ? Rarity.VERY_RARE
+                    : Rarity.LEGENDARY;
 }
 
+function shuffle<T>(array: T[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1)); // random index from 0 to i
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+
 function validType(type: string) {
-    switch(getGame().system.id) {
-        case 'dnd5e': 
+    switch (getGame().system.id) {
+        case 'dnd5e':
             return DND5E_ITEM_TYPES.includes(type);
         default:
             throw new Error(localize('unsupportedSystem'));
@@ -97,8 +118,8 @@ function validType(type: string) {
 }
 
 function randomizeTypeForSystem(): string {
-    switch(getGame().system.id) {
-        case 'dnd5e': 
+    switch (getGame().system.id) {
+        case 'dnd5e':
             return getRandomFromArray(DND5E_ITEM_TYPES);
         default:
             throw new Error(localize('unsupportedSystem'));
