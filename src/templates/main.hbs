@@ -1,14 +1,19 @@
-<div id="wondersmith-container">
-    <div class="spinners">
-        <span class="spinner prefix"></span>
-        <span class="spinner base">{{localize 'WONDERSMITH.Placeholder'}}</span>
-        <span class="spinner suffix"></span>
+<div id="wdsm-container">
+    <div class="wdsm-reels">
+        <span class="wdsm-reel" data-wondersmith-reel="prefix"></span>
+        <span class="wdsm-reel" data-wondersmith-reel="base">{{localize 'WONDERSMITH.Placeholder'}}</span>
+        <span class="wdsm-reel" data-wondersmith-reel="suffix"></span>
     </div>
-    <div class="rarity">
-        <span id="rarity"></span>
+    <div class="wdsm-rarity">
+        <span data-wondersmith_rarity></span>
     </div>
 
-    <div class="buttons">
-        <button id="spinner">{{localize 'WONDERSMITH.SpinButton'}}</button>
+    <div class="wdsm-buttons">
+        <button class="wdsm-button" data-wondersmith_spinner="any">{{localize 'WONDERSMITH.SpinButton'}}</button>
+        <div class="wdsm-type-buttons">
+            {{#each types}}
+                <button class="wdsm-button" data-wondersmith_spinner="{{this}}">{{capitalize this}}</button>
+            {{/each}}
+        </div>
     </div>
 </div>

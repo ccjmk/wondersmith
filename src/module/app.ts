@@ -3,11 +3,13 @@ import Randomizer from "./randomizer";
 import { localize } from "./utils";
 
 export default class Wondersmith extends Application {
-    readonly randomizer: Randomizer;
+    private readonly randomizer: Randomizer;
+    private readonly types;
 
     constructor(randomizer: Randomizer) {
         super();
         this.randomizer = randomizer;
+        this.types = randomizer.systemTypes();
     }
 
     static get defaultOptions() {
@@ -24,29 +26,37 @@ export default class Wondersmith extends Application {
     private prefixEl!: HTMLElement;
     private suffixEl!: HTMLElement;
     private spinnersEl!: HTMLElement;
-    private rarityEl!: HTMLSpanElement;
+    private readonly typeButtons: Map<string, HTMLElement> = new Map();
 
-    activateListeners(html: JQuery): void {
-        const el = this.element.get()[0];
-        el.querySelector('#spinner')?.addEventListener('click', () => this.spin());
-        this.baseNameEl = el.querySelector('.spinners .base')!;
-        this.prefixEl = el.querySelector('.spinners .prefix')!;
-        this.suffixEl = el.querySelector('.spinners .suffix')!;
-        this.spinnersEl = el.querySelector('.spinners')!;
-        this.rarityEl = el.querySelector('#rarity')!;
+    getData() {
+        return { types: this.types };
     }
 
-    async spin() {
-        const item = await this.randomizer.randomItem();
+    activateListeners(html: JQuery): void {
+        super.activateListeners(html);
+        const el = this.element.get()[0];
+        this.baseNameEl = el.querySelector('[data-wondersmith-reel="base"]')!;
+        this.prefixEl = el.querySelector('[data-wondersmith-reel="prefix"]')!;
+        this.suffixEl = el.querySelector('[data-wondersmith-reel="suffix"]')!;
+        this.spinnersEl = el.querySelector('.wdsm-reels')!;
+
+        //random all button
+        el.querySelector('[data-wondersmith_spinner="any"]')?.addEventListener('click', () => this.spin());
+
+        //type-specific buttons
+        this.types.forEach(t => el.querySelector(`[data-wondersmith_spinner="${t}"]`)?.addEventListener('click', () => this.spin(t)));
+    }
+
+    async spin(type?: string) {
+        const item = await this.randomizer.randomItem(type?{type}:{});
         this.baseNameEl.textContent = item.baseName;
         this.prefixEl.textContent = item.prefix?.label ?? '';
         this.suffixEl.textContent = item.suffix?.label ? `of ${item.suffix?.label}` : '';
         this.spinnersEl.style.color = getRarityColor(item.rarity);
-        this.rarityEl.textContent = localize(`Rarity.${item.rarity}`)
+        this.spinnersEl.title = localize(`Rarity.${item.rarity}`);
     }
-
-
 }
+
 function getRarityColor(rarity: Rarity): string {
     switch (rarity) {
         case Rarity.COMMON: return '#2c2c2c';

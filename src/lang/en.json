@@ -3,11 +3,11 @@
         "Placeholder": "Spin to generate a random item",
         "SpinButton": "Weld Wonderous Widgets!",
         "Rarity": {
-            "0": "Common",
-            "1": "Uncommon",
-            "2": "Rare",
-            "3": "Very Rare",
-            "4": "Legendary"
+            "1": "Common",
+            "2": "Uncommon",
+            "3": "Rare",
+            "5": "Very Rare",
+            "8": "Legendary"
         }
     }
 }

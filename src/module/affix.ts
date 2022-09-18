@@ -1,6 +1,6 @@
 import { Rarity } from './const';
 
-export interface Modifier {
+export default interface Affix {
   label: string; // part added to the item name
   effect: string;
   rarity: Rarity;

@@ -7,14 +7,18 @@ import { registerSettings } from './settings';
 import { preloadTemplates } from './preloadTemplates';
 import { MODULE_NAMESPACE } from './const';
 import Wondersmith from './app';
-import { getGame } from './utils';
+import { getGame, localize } from './utils';
 import Randomizer from './randomizer';
 import ModuleApi from './moduleApi';
 
 let randomizer: Randomizer;
+const validSystems = ['dnd5e'];
 
 // Initialize module
 Hooks.once('init', async () => {
+  if(!validSystems.includes(getGame().system.id)) {
+    throw new Error(localize('unsupportedSystem'));
+  }
   console.info('Wondersmith | Initializing module');
   registerSettings();
   await preloadTemplates();

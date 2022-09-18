@@ -14,6 +14,14 @@ export const localize = (key: string, data?: Record<string, unknown>) => {
     return i18n.localize(fullKey);
 }
 
-export function getRandomFromArray<T>(arr: T[]): T {
+export function getRandomFromArray<T>(arr: readonly T[]): T {
     return arr[Math.floor(Math.random() * arr.length)];
+}
+
+export function shuffleArray<T>(array: T[]) {
+    for (let i = array.length - 1; i > 0; i--) {
+        let j = Math.floor(Math.random() * (i + 1)); // random index from 0 to i
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }

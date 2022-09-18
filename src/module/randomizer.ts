@@ -1,120 +1,122 @@
 import { _isValidResultRange } from "@league-of-foundry-developers/foundry-vtt-types/src/foundry/common/data/data.mjs/tableResultData";
 import { DND5E_ITEM_TYPES, Rarity } from "./const";
-import { Modifier } from "./modifier";
+import Affix from "./affix";
 import { RandomItem } from "./randomItem";
+import { affixesForTypeAndRarity } from "./services/affixService";
 import { getGame, getRandomFromArray, localize } from "./utils";
 
 export interface RandomItemOptions { type?: string };
 
 export default class Randomizer {
-    randomItem = async (options?: RandomItemOptions): Promise<RandomItem> => {
 
+    systemTypes = (): readonly string[] => {
+        switch (getGame().system.id) {
+            case 'dnd5e':
+                return DND5E_ITEM_TYPES;
+            default:
+                throw new Error(localize('unsupportedSystem'));
+        }
+    }
+
+    randomItem = async (options: unknown={}): Promise<RandomItem> => {
+        if(!isRandomItemOptions(options)) throw new Error(localize('InvalidOptions'));
+        
         let { type } = options ?? { type: undefined };
         if (!type) type = randomizeTypeForSystem();
         else if (!validType(type)) throw new Error(localize('invalidType'));
 
-        const { prefixes, suffixes } = this.modifiersForType(type);
+        console.info(`WONDERSMITH - generating random ${type}`);
+
         const item = { name: type.capitalize() + "", type: type };
         const baseName = item.name;
         let prefix;
         let suffix;
 
-        const itemRoll = Math.random();
-        const rarity = rollItemRarity();
+        const { hasPrefix, hasSuffix } = rollAffixes();
         try {
-            // (0.4 , 0.6) creates both a prefix and a suffix
-            if (itemRoll < 0.6) {
-                const validPrefixes = shuffle(prefixes.filter(p => p.rarity <= rarity)).sort((a, b) => b.rarity - a.rarity);
-                if (validPrefixes.length) {
-                    prefix = getRandomFromArray(validPrefixes);
+            if (hasPrefix) {
+                prefix = getRandomAffix(type, "prefix");
 
-                    // TODO apply prefix
-                    console.log(`Prefix effect: ${prefix.effect}`);
-                    item.name = `${prefix.label} ${item.name}`;
-                }
+                // TODO apply prefix
+                console.log(`Prefix effect: ${prefix.effect} (${prefix.rarity})`);
+                item.name = `${prefix.label} ${item.name}`;
             }
-            if (itemRoll > 0.4) {
-                const validSuffixes = shuffle(suffixes.filter(p => p.rarity <= rarity)).sort((a, b) => b.rarity - a.rarity);
-                if (validSuffixes.length) {
-                    suffix = getRandomFromArray(validSuffixes);
+            if (hasSuffix) {
+                suffix = getRandomAffix(type, "suffix");
 
-                    // TODO apply suffix
-                    console.log(`Suffix effect: ${suffix.effect}`);
-                    item.name = `${item.name} of ${suffix.label}`;
-                }
+                // TODO apply suffix
+                console.log(`Suffix effect: ${suffix.effect} (${suffix.rarity})`);
+                item.name = `${item.name} of ${suffix.label}`;
             }
         } catch (error) {
             console.error(error);
-            console.log(`roll: ${itemRoll}`)
-            console.log(`rarity: ${rarity}`);
+            console.log(`roll: ${hasPrefix} ${hasSuffix}`)
             console.log(`prefix: ${prefix}`);
             console.log(`suffix: ${suffix}`);
         }
 
+        const rarity = calculateFinalRarity(prefix, suffix);
         return { item, baseName, rarity, prefix, suffix };
+    }
+}
 
+function getRandomAffix(type: string, category: 'prefix' | 'suffix'): Affix {
+    const rarity = rollItemRarity();
+    const affixes = affixesForTypeAndRarity(type, category, rarity);
+
+    // TODO: Move this checking into the loading process
+    if (affixes.length === 0) {
+        throw new Error(localize('NoPrefixForTypeAndSystem'));
     }
 
-    modifiersForType = (type: string): {
-        prefixes: Modifier[], // ABC {item}
-        suffixes: Modifier[], // {item} of XYZ
-    } => {
-        //TODO get modifiers from somewhere
-
-        return {
-            prefixes: [
-                { label: 'Sharp(C)', effect: "is sharper", rarity: Rarity.COMMON },
-                { label: 'Balanced(C)', effect: "is balanced", rarity: Rarity.COMMON },
-                { label: 'Engraved(U)', effect: "is engraved", rarity: Rarity.UNCOMMON },
-                { label: 'Brutal(U)', effect: "is brutal", rarity: Rarity.UNCOMMON },
-                { label: 'Sacred(R)', effect: "is sacred", rarity: Rarity.RARE },
-                { label: 'Astral(VR)', effect: "is astral", rarity: Rarity.VERY_RARE },
-                { label: 'Godly(L)', effect: "is godly", rarity: Rarity.VERY_RARE },
-            ],
-            suffixes: [
-                { label: 'Fury(C)', effect: "is furious", rarity: Rarity.COMMON },
-                { label: 'Lordship(C)', effect: "is of lordship", rarity: Rarity.COMMON },
-                { label: 'the Ancients(U)', effect: "is from the ancients", rarity: Rarity.UNCOMMON },
-                { label: 'Flame and Fire(U)', effect: "is of flame and fire", rarity: Rarity.UNCOMMON },
-                { label: 'the Deadly Hollows(R)', effect: "is from the deadly hollows", rarity: Rarity.RARE },
-                { label: 'Eons(VR)', effect: "is old AF", rarity: Rarity.VERY_RARE },
-                { label: 'Godslaying(L)', effect: "is for killing gods", rarity: Rarity.LEGENDARY },
-            ],
-        }
-    }
+    return getRandomFromArray(affixes);
 }
 
 const rollItemRarity = () => {
-    const roll = new Roll('1d100').evaluate({ async: false })
-    const result = roll.total;
-
-    return result < 40
-        ? Rarity.COMMON
-        : result < 70
-            ? Rarity.UNCOMMON
-            : result < 85
-                ? Rarity.RARE
-                : result < 95
-                    ? Rarity.VERY_RARE
-                    : Rarity.LEGENDARY;
-}
-
-function shuffle<T>(array: T[]) {
-    for (let i = array.length - 1; i > 0; i--) {
-        let j = Math.floor(Math.random() * (i + 1)); // random index from 0 to i
-        [array[i], array[j]] = [array[j], array[i]];
+    const { total } = new Roll('1d100').evaluate({ async: false });
+    switch (true) {
+        case (total < 40):
+            return Rarity.COMMON;
+        case (total < 70):
+            return Rarity.UNCOMMON;
+        case (total < 85):
+            return Rarity.RARE;
+        case (total < 95):
+            return Rarity.VERY_RARE;
+        default:
+            return Rarity.LEGENDARY;
     }
-    return array;
 }
 
+function rollAffixes(): { hasPrefix: boolean, hasSuffix: boolean } {
+    const roll = Math.random();
+    // TODO take values from module setting
+    return {
+        hasPrefix: roll < 0.6,
+        hasSuffix: roll > 0.4
+    }
+}
 
-function validType(type: string) {
+type ItemType = 'ValidItemType';
+
+function validType(type: string): type is ItemType {
     switch (getGame().system.id) {
         case 'dnd5e':
-            return DND5E_ITEM_TYPES.includes(type);
+            return DND5E_ITEM_TYPES.includes(type as any);
         default:
-            throw new Error(localize('unsupportedSystem'));
+            return false;
     }
+}
+
+function isRandomItemOptions(options: unknown): options is RandomItemOptions {
+    return (isObject(options))
+        && (options.type === undefined
+            || (typeof options.type === 'string' && validType(options.type))
+        );
+}
+
+function isObject(options: unknown): options is { [key: string]: unknown } {
+    return (typeof options === 'object');
 }
 
 function randomizeTypeForSystem(): string {
@@ -123,6 +125,18 @@ function randomizeTypeForSystem(): string {
             return getRandomFromArray(DND5E_ITEM_TYPES);
         default:
             throw new Error(localize('unsupportedSystem'));
+    }
+}
+
+function calculateFinalRarity(prefix: Affix | undefined, suffix: Affix | undefined) {
+    const itemRarity = (prefix?.rarity ?? 0) + (suffix?.rarity ?? 0);
+    console.log("final rarity: "+itemRarity);
+    switch(true) {
+        case itemRarity < Rarity.UNCOMMON: return Rarity.COMMON;
+        case itemRarity < Rarity.RARE: return Rarity.UNCOMMON;
+        case itemRarity < Rarity.VERY_RARE: return Rarity.RARE;
+        case itemRarity < Rarity.LEGENDARY: return Rarity.VERY_RARE;
+        default: return Rarity.LEGENDARY;
     }
 }
 
