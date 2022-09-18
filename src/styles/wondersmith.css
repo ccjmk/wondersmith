@@ -20,10 +20,6 @@
     color: var(--color-text-dark-primary);
   }
 
-  #wdsm-container .wdsm-rarity {
-    margin-top: 20px;
-  }
-
   #wdsm-container .wdsm-button {
     width: fit-content;
   }
