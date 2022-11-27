@@ -81,6 +81,7 @@ export function watch() {
 }
 
 export const build = gulp.series(clean, gulp.parallel(buildCode, buildStyles, copyFiles));
+export const buildDocker = gulp.series(build, publishDocker);
 
 /********************/
 /*      CLEAN       */
@@ -132,6 +133,17 @@ function getDataPaths() {
   } else {
     throw new Error('No dataPath defined in foundryconfig.json');
   }
+}
+
+/**
+ * Publish build to docker data folder
+ */
+async function publishDocker() {
+  const dataPath = getDataPaths();
+  if (dataPath.length !== 1) {
+    throw new Error('Multiple dataPaths are not supported yet.');
+  }
+  return fs.copy(distDirectory, path.join(dataPath[0], 'Data', 'modules', packageId));
 }
 
 /**
