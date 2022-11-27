@@ -1,8 +1,13 @@
 <div id="wdsm-container">
-    <div class="wdsm-reels">
-        <span class="wdsm-reel" data-wondersmith-reel="prefix"></span>
-        <span class="wdsm-reel" data-wondersmith-reel="base">{{localize 'WONDERSMITH.Placeholder'}}</span>
-        <span class="wdsm-reel" data-wondersmith-reel="suffix"></span>
+    <div class="wdsm-reels wdsm-reels--{{rarityColor}}" title="{{localize rarity}}">
+        <span class="wdsm-reel">{{prefix}}</span>
+        <span class="wdsm-reel">
+            {{#if base}}
+                {{base}}
+            {{else}}
+                {{localize 'WONDERSMITH.Placeholder'}}
+            {{/if}}</span>
+        <span class="wdsm-reel">{{suffix}}</span>
     </div>
 
     <div class="wdsm-buttons">
