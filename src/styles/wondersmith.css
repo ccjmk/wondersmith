@@ -16,6 +16,26 @@
     color: rgba(0, 0, 0, 0);
   }
 
+  #wdsm-container .wdsm-reels--common {
+    color: #2c2c2c;
+  }
+
+  #wdsm-container .wdsm-reels--uncommon {
+    color: #ffffff;
+  }
+
+  #wdsm-container .wdsm-reels--rare {
+    color: #dbb900;
+  }
+
+  #wdsm-container .wdsm-reels--very-rare {
+    color: #0e28ed;
+  }
+
+  #wdsm-container .wdsm-reels--legendary {
+    color: #6800db;
+  }
+
   #wdsm-container .wdsm-reels .wdsm-reel {
     color: var(--color-text-dark-primary);
   }

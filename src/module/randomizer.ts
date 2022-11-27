@@ -25,10 +25,10 @@ export default class Randomizer {
         if (!type) type = randomizeTypeForSystem();
         else if (!validType(type)) throw new Error(localize('invalidType'));
 
-        console.info(`WONDERSMITH - generating random ${type}`);
+        console.info(`Wondersmith | generating random ${type}`);
 
-        const item = { name: type.capitalize() + "", type: type };
-        const baseName = item.name;
+        const item = { name: type.capitalize() as string, type };
+        const base = item.name;
         let prefix;
         let suffix;
 
@@ -56,7 +56,7 @@ export default class Randomizer {
         }
 
         const rarity = calculateFinalRarity(prefix, suffix);
-        return { item, baseName, rarity, prefix, suffix };
+        return { item, base, rarity, prefix, suffix };
     }
 }
 
